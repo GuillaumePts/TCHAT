@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Tchat</title>
+
+</head>
+
+<body>
+
+    <div class="app">
+        <h1>Bienvenu !</h1>
+
+        <div class="container">
+            <h2>liste des channels</h2>
+        </div>
+        <div class="msgContainer" id="msgContainer"></div>
+
+        <div id="isWritting"></div>
+        <form method="post" id="chatForm">
+            <input type="text" id="msgInput" autofocus onkeypress="writting()" onblur="notWritting()">
+            <select name="receiver" id="receiverInput">
+                <option value="all">A tous</option>
+                <% users.forEach(user => { %>
+                <option value="<%= user.pseudo %>"><%= user.pseudo %></option>
+                <% });%>
+            </select>
+            <input type="submit" value="Envoyer" id="btnsend">
+        </form>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <script  src="chat.js"></script>
+
+</body>
+
+</html>
