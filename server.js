@@ -1,4 +1,3 @@
-
 const express = require('express');
 const app = express();
 const server = require('http').createServer(app);
@@ -34,15 +33,35 @@ let Chat = mongoose.model('chat');
 app.use(express.static(__dirname + '/public'));
 
 //ROuTER
-
 app.get('/', function (req, res) {
-
     User.find((err, users) => {
-        res.render('index.ejs', {
-            users: users
-        });
-    })
+        if (users) {
+            Room.find((err, channels) => {
+                if (channels) {
+                    res.render('index.ejs', {
+                        users: users,
+                        channels: channels
+                    });
+                } else {
 
+                    res.render('index.ejs', {
+                        users: users
+                    });
+                }
+            });
+        } else {
+            Room.find((err, channels) => {
+                if (channels) {
+                    res.render('index.ejs', {
+                        channels: channels
+                    });
+                } else {
+
+                    res.render('index.ejs');
+                }
+            });
+        }
+    });
 });
 
 app.use(function (req, res, next) {
@@ -64,12 +83,14 @@ io.on('connection', (socket) => {
         }, (err, user) => {
             if (user) {
                 socket.pseudo = pseudo;
+                _joinRoom('salon1');
+
                 socket.broadcast.emit('newUser', pseudo)
             } else {
                 let user = new User();
                 user.pseudo = pseudo;
                 user.save();
-
+                _joinRoom('salon1');
                 socket.pseudo = pseudo;
                 socket.broadcast.emit('newUser', pseudo)
                 socket.broadcast.emit('newUserInDb', pseudo)
@@ -77,11 +98,11 @@ io.on('connection', (socket) => {
 
             connectedUsers.push(socket);
 
-            Chat.find({
-                receiver: 'all'
-            }, (err, messages) => {
-                socket.emit('oldMessages', messages);
-            })
+            // Chat.find({
+            //     receiver: 'all'
+            // }, (err, messages) => {
+            //     socket.emit('oldMessages', messages);
+            // })
         });
 
     })
@@ -94,7 +115,7 @@ io.on('connection', (socket) => {
             if (err) {
                 return false;
             } else {
-                socket.emit('oldWhispers',messages)
+                socket.emit('oldWhispers', messages)
             }
 
         });
@@ -104,12 +125,13 @@ io.on('connection', (socket) => {
 
         if (receiver === "all") {
             let chat = new Chat();
+            chat._id_room = socket.channel;
             chat.content = message;
             chat.sender = socket.pseudo;
             chat.receiver = "all";
             chat.save();
 
-            socket.broadcast.emit('newMessageAll', {
+            socket.broadcast.to(socket.channel).emit('newMessageAll', {
                 message: message,
                 pseudo: socket.pseudo
             })
@@ -122,7 +144,7 @@ io.on('connection', (socket) => {
                 if (!user) {
                     return false
                 } else {
-                     socketReceiver = connectedUsers.find(socket => socket.pseudo === user.pseudo);
+                    socketReceiver = connectedUsers.find(socket => socket.pseudo === user.pseudo);
 
                     if (socketReceiver) {
 
@@ -150,16 +172,18 @@ io.on('connection', (socket) => {
 
     });
 
-
+    socket.on('changeChannel', (channel) => {
+        _joinRoom(channel);
+    })
 
 
 
     socket.on('writting', (pseudo) => {
-        socket.broadcast.emit('writting', pseudo);
+        socket.broadcast.to(socket.channel).emit('writting', pseudo);
     })
 
     socket.on('notWritting', () => {
-        socket.broadcast.emit('notWritting');
+        socket.broadcast.to(socket.channel).emit('notWritting');
     })
 
     socket.on('disconnect', () => {
@@ -169,7 +193,70 @@ io.on('connection', (socket) => {
         }
         socket.broadcast.emit('quitUser', socket.pseudo);
     })
+
+    // FUNCTION
+
+    function _joinRoom(channelParam) {
+
+        let previousChannel = '';
+        if (socket.channel) {
+            previousChannel = socket.channel;
+        }
+
+        socket.leaveAll();
+        socket.join(channelParam);
+        socket.channel = channelParam;
+
+
+        Room.findOne({
+            name: socket.channel
+        }, (err, channel) => {
+            if (channel) {
+                Chat.find({
+                    _id_room: socket.channel
+                }, (err, messages) => {
+                    if (!messages) {
+                        return false;
+                    } else {
+                        socket.emit('oldMessages', messages, socket.pseudo);
+                        //Si l'utilisateur vient d'un autre channel, on le fait passer, sinon on ne fait passer que le nouveau
+                        if (previousChannel) {
+                            socket.emit('emitChannel', {
+                                previousChannel: previousChannel,
+                                newChannel: socket.channel
+                            });
+                        } else {
+                            socket.emit('emitChannel', {
+                                newChannel: socket.channel
+                            });
+                        }
+                    }
+                });
+
+            } else {
+                let room = new Room();
+                room.name = socket.channel;
+                room.save();
+                if (socket.channel === "salon1") {
+                    socket.broadcast.emit('newChannel', socket.channel)
+                    socket.emit('emitChannel', {
+                        previousChannel: previousChannel,
+                        newChannel: socket.channel
+                    })
+                } else {
+                    socket.emit('emitChannel', {
+                        previousChannel: previousChannel,
+                        newChannel: socket.channel
+                    })
+                }
+
+            }
+        })
+    }
+
 })
+
+
 
 
 

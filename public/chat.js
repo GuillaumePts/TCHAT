@@ -1,8 +1,9 @@
 let socket = io.connect('http://localhost:9999');
 
-let pseudo = ''
 
+let pseudo = ''
 if (pseudo === '') {
+
     pseudo = prompt('ton nom fdp ?');
 
 }
@@ -60,6 +61,17 @@ socket.on('whisper', (content) => {
     createElementFunction('whisper', content)
 })
 
+socket.on('newChannel', (newChannel) =>{
+    createChannel(newChannel);
+})
+
+socket.on('emitChannel' , (channels) =>{
+    if(channels.previousChannel){
+        document.getElementById(channels.previousChannel).classList.remove('inChannel')
+    }
+    document.getElementById(channels.newChannel).classList.add('inChannel')
+})
+
 socket.on('oldWhispers', (messages) => {
     messages.forEach(message => {
         createElementFunction('oldWhispers', message)
@@ -83,6 +95,8 @@ socket.on('notWritting', () => {
     document.querySelector('#isWritting').textContent = ''
 })
 
+
+
 socket.on('quitUser', (data) => {
     createElementFunction('quitUser', data)
 })
@@ -96,6 +110,31 @@ function writting() {
 
 function notWritting() {
     socket.emit('notWritting')
+}
+
+function createChannel(newRoom){
+    const newRoomItem = document.createElement("li");
+    newRoomItem.classList.add('elementList');
+    newRoomItem.id = newRoom;
+    newRoomItem.textContent = newRoom;
+    newRoomItem.setAttribute('onclick', "_joinRoom('" + newRoom + "')")
+    document.getElementById('roomList').insertBefore(newRoomItem, document.getElementById('createNewRoom'));
+}
+
+function _joinRoom(channel){
+    document.querySelector('#msgContainer').innerHTML ='';
+    socket.emit('changeChannel', channel);
+}
+
+function _createRoom(){
+    let newRoom = ''
+if(newRoom === ''){
+    newRoom = prompt('le nom de la room batard : ')
+}
+
+createChannel(newRoom);
+
+_joinRoom(newRoom);
 }
 
 function createElementFunction(element, content) {

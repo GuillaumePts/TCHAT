@@ -16,18 +16,29 @@
         <h1>Bienvenu !</h1>
 
         <div class="container">
+            <div class="channelList">
             <h2>liste des channels</h2>
+            <ul id="roomList">
+              
+                <% channels.forEach(channel => { %>
+                    <li onclick="_joinRoom('<%=channel.name%>')" class="elementList" id="<%=channel.name%>"><%= channel.name %></li>
+                    <% }); %>
+                    <li onclick="_createRoom()" class="elementList" id="createNewRoom">Creer une nouvelle room</li>
+            </ul>
         </div>
         <div class="msgContainer" id="msgContainer"></div>
+    </div>
 
         <div id="isWritting"></div>
         <form method="post" id="chatForm">
             <input type="text" id="msgInput" autofocus onkeypress="writting()" onblur="notWritting()">
             <select name="receiver" id="receiverInput">
                 <option value="all">A tous</option>
+          
                 <% users.forEach(user => { %>
                 <option value="<%= user.pseudo %>"><%= user.pseudo %></option>
                 <% });%>
+        
             </select>
             <input type="submit" value="Envoyer" id="btnsend">
         </form>
