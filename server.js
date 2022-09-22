@@ -82,30 +82,44 @@ io.on('connection', (socket) => {
             pseudo: pseudo
         }, (err, user) => {
             if (user) {
-                socket.pseudo = pseudo;
-                _joinRoom('salon1');
-
-                socket.broadcast.emit('newUser', pseudo)
+               // On join automatiquement le channel "salon1" par défaut
+               
+              console.log(2);
+               // On conserve le pseudo dans la variable socket qui est propre à chaque utilisateur
+               socket.pseudo = pseudo;
+              
+               connectedUsers.push(socket);
+               console.log(socket.pseudo, connectedUsers[0]);
+               // On previent les autres
+               socket.broadcast.to(socket.channel).emit('newUser', pseudo);
             } else {
                 let user = new User();
                 user.pseudo = pseudo;
                 user.save();
-                _joinRoom('salon1');
+
+                // On join automatiquement le channel "salon1" par défaut
+               console.log(1);
+
                 socket.pseudo = pseudo;
-                socket.broadcast.emit('newUser', pseudo)
-                socket.broadcast.emit('newUserInDb', pseudo)
+                connectedUsers.push(socket)
+                socket.broadcast.to(socket.channel).emit('newUser', pseudo);
+                socket.broadcast.emit('newUserInDb', pseudo);
+               
             }
 
-            connectedUsers.push(socket);
+           
 
             // Chat.find({
             //     receiver: 'all'
             // }, (err, messages) => {
             //     socket.emit('oldMessages', messages);
             // })
+            
         });
 
     })
+
+
 
     socket.on('oldWhispers', (pseudo) => {
         Chat.find({
@@ -124,11 +138,12 @@ io.on('connection', (socket) => {
     socket.on('newMessage', (message, receiver) => {
 
         if (receiver === "all") {
+          
             let chat = new Chat();
             chat._id_room = socket.channel;
             chat.content = message;
             chat.sender = socket.pseudo;
-            chat.receiver = "all";
+            chat.receiver = receiver;
             chat.save();
 
             socket.broadcast.to(socket.channel).emit('newMessageAll', {
@@ -143,6 +158,7 @@ io.on('connection', (socket) => {
 
                 if (!user) {
                     return false
+                    
                 } else {
                     socketReceiver = connectedUsers.find(socket => socket.pseudo === user.pseudo);
 
@@ -182,8 +198,8 @@ io.on('connection', (socket) => {
         socket.broadcast.to(socket.channel).emit('writting', pseudo);
     })
 
-    socket.on('notWritting', () => {
-        socket.broadcast.to(socket.channel).emit('notWritting');
+    socket.on('notWritting', (pseudo) => {
+        socket.broadcast.to(socket.channel).emit('notWritting',pseudo);
     })
 
     socket.on('disconnect', () => {
@@ -193,7 +209,7 @@ io.on('connection', (socket) => {
         }
         socket.broadcast.emit('quitUser', socket.pseudo);
     })
-
+console.log(connectedUsers.length);
     // FUNCTION
 
     function _joinRoom(channelParam) {
@@ -211,10 +227,13 @@ io.on('connection', (socket) => {
         Room.findOne({
             name: socket.channel
         }, (err, channel) => {
+           
             if (channel) {
                 Chat.find({
                     _id_room: socket.channel
                 }, (err, messages) => {
+
+                
                     if (!messages) {
                         return false;
                     } else {
@@ -242,12 +261,17 @@ io.on('connection', (socket) => {
                     socket.emit('emitChannel', {
                         previousChannel: previousChannel,
                         newChannel: socket.channel
+                        
                     })
+              
                 } else {
+                    socket.broadcast.emit('newChannel', socket.channel)
                     socket.emit('emitChannel', {
                         previousChannel: previousChannel,
                         newChannel: socket.channel
                     })
+                   
+              
                 }
 
             }

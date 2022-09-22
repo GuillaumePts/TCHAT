@@ -46,10 +46,10 @@ socket.on('newUser', (data) => {
 
 })
 
-socket.on('newUserInDb', (data) =>{
-    newOptions =document.createElement('option');
-    newOptions.textContent=data;
-    newOptions.value=data;
+socket.on('newUserInDb', (data) => {
+    newOptions = document.createElement('option');
+    newOptions.textContent = data;
+    newOptions.value = data;
     document.querySelector('#receiverInput').appendChild(newOptions);
 })
 
@@ -61,12 +61,14 @@ socket.on('whisper', (content) => {
     createElementFunction('whisper', content)
 })
 
-socket.on('newChannel', (newChannel) =>{
+socket.on('newChannel', (newChannel) => {
     createChannel(newChannel);
 })
 
-socket.on('emitChannel' , (channels) =>{
-    if(channels.previousChannel){
+socket.on('emitChannel', (channels) => {
+  
+    if (channels.previousChannel) {
+   
         document.getElementById(channels.previousChannel).classList.remove('inChannel')
     }
     document.getElementById(channels.newChannel).classList.add('inChannel')
@@ -78,12 +80,18 @@ socket.on('oldWhispers', (messages) => {
     })
 })
 
-socket.on('oldMessages', (messages) => {
+socket.on('oldMessages', (messages, user) => {
     messages.forEach(message => {
-        if (message.sender === pseudo) {
-            createElementFunction('oldMessagesMe', message)
+        if (message.sender === user) {
+            createElementFunction('oldMessagesMe', {
+                sender: message.sender,
+                content: message.content
+            })
         } else {
-            createElementFunction('oldMessages', message)
+            createElementFunction('oldMessages', {
+                sender: message.sender,
+                content: message.content
+            })
         }
     });
 })
@@ -112,7 +120,7 @@ function notWritting() {
     socket.emit('notWritting')
 }
 
-function createChannel(newRoom){
+function createChannel(newRoom) {
     const newRoomItem = document.createElement("li");
     newRoomItem.classList.add('elementList');
     newRoomItem.id = newRoom;
@@ -121,21 +129,12 @@ function createChannel(newRoom){
     document.getElementById('roomList').insertBefore(newRoomItem, document.getElementById('createNewRoom'));
 }
 
-function _joinRoom(channel){
-    document.querySelector('#msgContainer').innerHTML ='';
+function _joinRoom(channel) {
+    document.querySelector('#msgContainer').innerHTML = '';
     socket.emit('changeChannel', channel);
 }
 
-function _createRoom(){
-    let newRoom = ''
-if(newRoom === ''){
-    newRoom = prompt('le nom de la room batard : ')
-}
 
-createChannel(newRoom);
-
-_joinRoom(newRoom);
-}
 
 function createElementFunction(element, content) {
     let newElement = document.createElement('div');
@@ -192,4 +191,16 @@ function createElementFunction(element, content) {
             document.getElementById('msgContainer').appendChild(newElement);
             break;
     }
+}
+
+
+function _createRoom() {
+    let newRoom = ''
+    if (newRoom === '') {
+        newRoom = prompt('le nom de la room batard : ')
+    }
+
+    createChannel(newRoom);
+
+    _joinRoom(newRoom);
 }

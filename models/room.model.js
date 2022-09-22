@@ -1,7 +1,10 @@
 const mongoose = require('mongoose');
 
 let roomSchema = new mongoose.Schema({
-    name : String
+    name : String,
+    _id_message: {
+        type: mongoose.Schema.Types.ObjectId, ref: 'chat'
+    }
 });
 
 mongoose.model('room', roomSchema);
